@@ -1,0 +1,22 @@
+{
+    "python.pythonPath": "E:\\Anaconda环境\\Anaconda\\python.exe",
+    "python.linting.enabled": true,
+    "python.linting.flake8Enabled": true,
+    "python.formatting.provider": "yapf",
+    "python.linting.flake8Args": [
+        "--max--line-lenght=64"
+    ],
+    "workbench.settings.editor": "json",
+    "workbench.colorTheme": "Predawn",
+    "workbench.iconTheme": "ayu",
+    "workbench.settings.openDefaultSettings": true,
+    "editor.fontSize": 16,
+    "editor.fontWeight": "500",
+    "debug.console.fontSize":16,
+    "terminal.integrated.fontSize": 16,
+    "code-runner.executorMap": {
+        "python":"$pythonPath -u $fullFileName"
+    },
+    "code-runner.clearPreviousOutput": true,
+    "code-runner.showExecutionMessage":false
+}
