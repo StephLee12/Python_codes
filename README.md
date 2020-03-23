@@ -1,5 +1,5 @@
-# Data Structure and Algorithms using Python
+# Some Codes,Experiments,Projects using Python
 
-This is some codes about data structure and algorithms.
+Include Data Mining Course, Data Structure and Algorithms(self-learning)
 
-All of this are self-learning from 18 Feb to 18 Mar
+To be continued
