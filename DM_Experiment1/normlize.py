@@ -110,20 +110,21 @@ def version_3(a_1,a_2,a_3,a_4):
     print("---------Output results used normlization-v3------------")
     print_statistic(a_1_v3,a_2_v3,a_3_v3,a_4_v3)
 
-# 读取arff文件
-dataset = arff.loadarff('DM_Experiment1\iris.arff')
-# 获取有效数据的元组
-data_tuple = dataset[0]
-#获取元组的长度
-data_tuple_len = len(data_tuple)
-#分别获取attribute
-a_1,a_2,a_3,a_4 = single_attribute(data_tuple,data_tuple_len)
-#进行归一化version1
-version_1(a_1,a_2,a_3,a_4)
-#进行归一化version2
-version_2(a_1,a_2,a_3,a_4)
-#进行归一化version3
-version_3(a_1,a_2,a_3,a_4)
+if __name__ == "__main__":
+    # 读取arff文件
+    dataset = arff.loadarff('DM_Experiment1/iris.arff')
+    # 获取有效数据的元组
+    data_tuple = dataset[0]
+    #获取元组的长度
+    data_tuple_len = len(data_tuple)
+    #分别获取attribute
+    a_1,a_2,a_3,a_4 = single_attribute(data_tuple,data_tuple_len)
+    #进行归一化version1
+    version_1(a_1,a_2,a_3,a_4)
+    #进行归一化version2
+    version_2(a_1,a_2,a_3,a_4)
+    #进行归一化version3
+    version_3(a_1,a_2,a_3,a_4)
 
 
 
