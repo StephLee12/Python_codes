@@ -134,7 +134,7 @@ def normlization(mat, nominal_index):
 #计算相似度 数值属性用欧氏距离
 def cal_sim(mat, nominal_index):
     # shape[0]是矩阵行数 shape[1]是矩阵列数
-    sim_list = [[0 for i in range(mat.shape[0])] for j in range(mat.shape[0])]
+    sim_list = [[0 for i in range(mat.shape[0])] for j in range(mat.shape[1])]
     for i in range(len(sim_list)):
         for j in range(len(sim_list)):
             if i == j:
@@ -186,7 +186,7 @@ if __name__ == "__main__":
     # 加载数据
     nominal_column, nominal_index, columns, df = load()
     #version_1 数值属性用均值填充  标称属性用众数填充
-    #version_1(nominal_column, columns, df)
+    version_1(nominal_column, columns, df)
     #将dataframe转换为矩阵
     df_list = df.values.tolist()
     df_mat = np.mat(df_list)
