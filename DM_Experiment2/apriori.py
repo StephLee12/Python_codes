@@ -121,7 +121,7 @@ def run_apriori(params, l1_set, db_list):
 
     min_sup = params[0]
     db_len = len(db_list)
-    fre_set = [[] for i in range(len(db_list))
+    fre_set = [[] for i in range(len(l1_set))
                ]  #create a bucket to store all frequent itemsets
     fre_set[0] = l1_set  # l1_set puts into the first bucket
 
@@ -140,7 +140,7 @@ def run_apriori(params, l1_set, db_list):
 
     count = 1
     for i in fre_set:
-        print("L%d itemset size is:%d" %(count,len(i)))
+        print("L%d itemset size is:%d" % (count, len(i)))
         count += 1
     return fre_set
 
@@ -153,4 +153,3 @@ if __name__ == "__main__":
     db_list = gen_database(db)
     l1_set = gen_l1(params, df, columns, db_list)
     fre_set = run_apriori(params, l1_set, db_list)
-
