@@ -43,4 +43,5 @@ def IG(df,columns,last_column):
 if __name__ == "__main__":
     df,columns,last_column= load()
     ig = IG(df,columns,last_column)
-    print(ig)
+    #print(ig)
+    print(np.log2())
