@@ -2,8 +2,6 @@ import numpy as np
 import pandas as pd
 from scipy.io import arff
 import feature_selection as dm
-from xml.dom import minidom
-from xml.etree.ElementTree import Element,SubElement,ElementTree
 
 
 class DTNode:
@@ -63,10 +61,6 @@ def gen_DT(train_data, class_data, att_list, class_column):
     # 选取分裂属性
     att_list, split_att = att_selection(train_data, att_list, class_column)
     node.split_att = split_att
-    #for i in range(len(att_list)):
-    #if att_list[i] == split_att:
-    #att_list.pop(i)
-    #break
 
     # 将此结点train_data分组
     split_att_list = train_data[split_att].unique()
@@ -93,7 +87,3 @@ if __name__ == "__main__":
     test_data, _, __ = load(url[1])
     DTTree = gen_DT(train_data, class_data, att_list, class_column)
     visualization(DTTree)
-    #print('66')
-    #a,b = att_selection(train_data,att_list,class_column)
-    #print(a)
-    #print(type(b))
