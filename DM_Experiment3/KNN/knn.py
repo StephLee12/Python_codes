@@ -81,7 +81,7 @@ def knn_classify_main(train_df,test_df,columns,k=3):
 
 
 if __name__ == "__main__":
-    url = ['DM_Experiment3/iris.2D.train.arff', 'DM_Experiment3/iris.2D.test.arff']
+    url = ['DM_Experiment3/KNN/iris.2D.train.arff', 'DM_Experiment3/KNN/iris.2D.test.arff']
     train_data,columns = load_normlize_data(url[0])
     test_data,_ = load_normlize_data(url[1])
     test_df,correct_rate = knn_classify_main(train_data,test_data,columns,k=3)
