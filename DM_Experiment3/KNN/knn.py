@@ -28,6 +28,7 @@ def knn_vote(best_k,train_df,columns):
     return mode
 # calculate distance
 def cal_dis(vec_train,vec_test):
+    
     vec_train,vec_test = np.array(vec_train), np.array(vec_test)
     dis = np.sqrt(np.sum(np.square(vec_train - vec_test)))
     return dis

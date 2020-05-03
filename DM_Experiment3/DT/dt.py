@@ -43,18 +43,20 @@ def att_selection(df, att_list, class_column):
     return att_list, att_selected
 
 
-def gen_DT(train_data, class_data, att_list, class_column):
+def gen_DT(train_data, class_data, att_list, class_column,belong_att):
 
-    node = DTNode(class_data, None, None)  # create a new node
+    node = DTNode(class_data, None, belong_att)  # create a new node
 
     # class_data 中都在同一个类
     uni_class_data = class_data.unique()
     if (uni_class_data.shape[0] == 1):
+        node.split_att = belong_att
         node.belong_att = uni_class_data[0]
         return node
 
     # 多数表决
     if (att_list == []):
+        node.split_att = belong_att
         mode = class_data.mode().get(0)
         node.belong_att = mode
         return node
@@ -68,11 +70,11 @@ def gen_DT(train_data, class_data, att_list, class_column):
         new_train_data = train_data[train_data[split_att] == att]
         if new_train_data.empty:  #若为空 则加一个树叶到该结点,标记为D的多数类
             mode = class_data.mode().get(0)
-            node.children.append(DTNode(None, None, mode))
+            node.children.append(DTNode(None, att, mode))
         else:
             new_class_data = new_train_data[class_column]
             node.children.append(
-                gen_DT(new_train_data, new_class_data, att_list, class_column))
+                gen_DT(new_train_data, new_class_data, att_list, class_column,att))
 
     return node
 
@@ -85,5 +87,4 @@ if __name__ == "__main__":
     train_data, att_list, class_column = load(url[0])
     class_data = train_data[class_column]
     test_data, _, __ = load(url[1])
-    DTTree = gen_DT(train_data, class_data, att_list, class_column)
-    #visualization(DTTree)
+    DTTree = gen_DT(train_data, class_data, att_list, class_column,None)
