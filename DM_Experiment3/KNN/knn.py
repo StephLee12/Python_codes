@@ -45,7 +45,7 @@ def knn_classify_main(train_df,test_df,columns,k=3):
     
     # add a new column to record classification result
     columns.append('class_classify')
-    test_df.insert(3,'class_classify','')
+    test_df.insert(len(columns)-1,'class_classify','')
 
     for i in range(test_df.shape[0]):
         # get test_data vector

@@ -86,4 +86,4 @@ if __name__ == "__main__":
     class_data = train_data[class_column]
     test_data, _, __ = load(url[1])
     DTTree = gen_DT(train_data, class_data, att_list, class_column)
-    visualization(DTTree)
+    #visualization(DTTree)
