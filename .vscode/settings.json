@@ -1,5 +1,5 @@
 {
-    "python.pythonPath": "E:\\Anaconda环境\\Anaconda\\python.exe",
+    "python.pythonPath": "E:\\AnacondaEnv\\Anaconda\\envs\\usualEnv\\python.exe",
     "python.linting.enabled": true,
     "python.linting.flake8Enabled": true,
     "python.formatting.provider": "yapf",

@@ -2,7 +2,6 @@ from scipy.io import arff
 import pandas as pd
 import numpy as np
 
-
 def load():
     # load data
     dataset = arff.loadarff('DM_Experiment2/weather_nominal.arff')
@@ -11,7 +10,6 @@ def load():
     columns = list(df)
 
     return db, df, columns
-
 
 def gen_database(db):
 
