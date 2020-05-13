@@ -118,6 +118,7 @@ def normlization_part(attribute):
             new_elem = (attribute[i] - a_min) / (a_max - a_min)
             new_a.append(new_elem)
     return new_a, is_nan_index
+    
 def normlization(mat, nominal_index):
     for i in range(mat.shape[1]):
         if i not in nominal_index:  #数值属性列
