@@ -151,3 +151,5 @@ if __name__ == "__main__":
     db_list = gen_database(db)
     l1_set = gen_l1(params, df, columns, db_list)
     fre_set = run_apriori(params, l1_set, db_list)
+    for i in fre_set:
+        print(i)
