@@ -2,49 +2,155 @@ import numpy as np
 import pandas as pd
 import re
 
-from collections import Counter
-
-from cart_2 import CARTNode
+from id3_2 import IG3Node
 from preprocessing import Data
 
 
-# inherit from cartnode
-# change fea_selection() method
-class RFNode(CARTNode):
-    def __init__(self,data,split_fea,val,num_flag,split_path,belong_fea,leaf_flag,purity_flag):
-        super(RFNode,self).__init__(
-            data=data,
-            split_fea=split_fea,
-            val=val,
-            num_flag=num_flag,
-            split_path=split_path,
-            belong_fea=belong_fea,
-            leaf_flag=leaf_flag,
-            purity_flag=purity_flag
-        )
-    # override
+# inherit from ig3node
+class CARTNode(IG3Node):
+    def __init__(self, data, split_fea, val, num_flag, split_path, belong_fea,
+                 leaf_flag, purity_flag):
+        super(CARTNode, self).__init__(data=data,
+                                       split_fea=split_fea,
+                                       val=val,
+                                       num_flag=num_flag,
+                                       split_path=split_path,
+                                       belong_fea=belong_fea,
+                                       leaf_flag=leaf_flag,
+                                       purity_flag=purity_flag)
+
+        self.left_child = None
+        self.right_child = None
+
+    # 计算熵
+    def calc_entropy(self, df, fea_name):
+        # 去除一列数据中的重复值
+        uni_fea_data = df[fea_name].unique()
+
+        ent = 0
+        for val in uni_fea_data:
+            pr = sum(df[fea_name] == val) / df.shape[0]
+            # 概率计算也可用 self.data.df[fea_name].value_counts / self.data.df.shape[0]
+            ent += pr * np.log(pr)
+
+        return -ent  # 注意返回的是 -ent
+
+    # 对于数值型数据 计算条件信息熵时
+    # 先产生划分点集合
+    def gen_divide_points(self, fea_name):
+        fea_elem = list(self.data.df[fea_name])
+        fea_elem.sort()
+
+        divide_points = []
+        for i in range(len(fea_elem) - 1):
+            p = (fea_elem[i] + fea_elem[i + 1]) / 2
+            divide_points.append(p)
+
+        return divide_points
+
+    # 计算条件信息熵
+    def calc_case_ent_cont(self, fea_name):
+        divide_points = self.gen_divide_points(fea_name)
+
+        self.data.class_column_ent = self.calc_entropy(self.data.df,
+                                                       self.data.class_column)
+        # 计算每个划分点的信息增益
+        best_ig = 0
+        best_divide_p = 0
+        for p in divide_points:
+            # <= p 的概率
+            pr_le = self.data.df[
+                self.data.df[fea_name] <= p].shape[0] / self.data.df.shape[0]
+            # > p 的概率
+            pr_gt = 1 - pr_le
+
+            # 计算信息增益
+            case_ent = 0
+            case_ent += pr_le * self.calc_entropy(
+                self.data.df[self.data.df[fea_name] <= p],
+                self.data.class_column)
+            case_ent += pr_gt * self.calc_entropy(
+                self.data.df[self.data.df[fea_name] > p],
+                self.data.class_column)
+            ig = self.data.class_column_ent - case_ent
+
+            if ig > best_ig:
+                best_ig = ig
+                best_divide_p = p
+
+        return best_divide_p, best_ig
+
+    # 计算标称数据的gini
+    def calc_gini_nom(self, fea_name, fea_val):
+        df = self.data.df
+        # split dataframe
+        split_df = [df[df[fea_name] == fea_val], df[df[fea_name] != fea_val]]
+
+        gini_val = 0
+        for data in split_df:
+            tmp_gini = 0
+            pr = data[self.data.class_column].value_counts() / data.shape[0]
+            tmp_gini = 1 - sum(np.square(np.array(pr)))
+            tmp_gini *= data.shape[0] / df.shape[0]
+            gini_val += tmp_gini
+
+        return gini_val
+
+    # 计算数值数据的gini
+    def calc_gini_num(self, fea_name, divide_point):
+        df = self.data.df
+        split_df = [
+            df[df[fea_name] <= divide_point], df[df[fea_name] > divide_point]
+        ]
+
+        gini_val = 0
+        for data in split_df:
+            tmp_gini = 0
+            pr = data[self.data.class_column].value_counts() / data.shape[0]
+            tmp_gini = 1 - sum(np.square(np.array(pr)))
+            tmp_gini *= data.shape[0] / df.shape[0]
+            gini_val += tmp_gini
+
+        return gini_val
+
+    # 计算每一列的gini
+    def calc_gini(self):
+        gini = []
+        for col_name in self.data.fea_column:
+            # 若是数值属性
+            if col_name in self.data.num_columns:
+                best_divide_p, _ = self.calc_case_ent_cont(col_name)
+                gini_val = self.calc_gini_num(col_name, best_divide_p)
+                gini.append((gini_val, best_divide_p))
+            else:  # 若是标称属性
+                fea_val = self.data.df[col_name].unique()
+                gini_val = 1
+                best_fea_val = None
+                for val in fea_val:
+                    tmp = self.calc_gini_nom(col_name, val)
+                    if tmp < gini_val:
+                        gini_val = tmp
+                        best_fea_val = val
+                gini.append((gini_val, best_fea_val))
+
+        return gini
+
+    # 特征筛选
     def fea_selection(self):
-        # get gini ,each elem is a tuple
+
+        # get gini,each elem is a tuple
         gini = self.calc_gini()
         # get gini value
         gini_val = []
         for i in range(len(gini)):
             gini_val.append(gini[i][0])
-        
-        # difference between carttree and random forest
-        fea_list_length = len(self.data.fea_column)
-        m = np.floor(np.sqrt(fea_list_length)) #取整
-        rand_m_idx = list(np.random.randint(0,fea_list_length,size=int(m)))
-        # 获得被选中的特征的gini value
-        choose_fea_gini_val = []
-        for idx in rand_m_idx:
-            choose_fea_gini_val.append(gini_val[idx])
-        choose_fea_gini_val = np.array(choose_fea_gini_val)
-        min_idx = np.argmin(choose_fea_gini_val)
-        
-        min_idx = rand_m_idx[min_idx] #这里用了两次索引
-        selected_fea = self.data.fea_column[min_idx]
-        self.data.fea_column.pop(min_idx)
+
+        # find min gini value
+        gini_val = np.array(gini_val)
+        max_idx = np.argmin(gini_val)
+
+        selected_fea = self.data.fea_column[max_idx]
+        self.data.fea_column.pop(max_idx)
 
         # flag==0 means the feature is numeric
         # flag==1 means is nominal
@@ -54,67 +160,40 @@ class RFNode(CARTNode):
 
         if selected_fea in self.data.nom_columns:
             flag = 1
-            best_nom_fea_val = gini[min_idx][1]
+            best_nom_fea_val = gini[max_idx][1]
         else:
             flag = 0
-            divide_point = gini[min_idx][1]
+            divide_point = gini[max_idx][1]
 
         return (selected_fea, flag, divide_point, best_nom_fea_val)
 
-class RandomForest:
-    def __init__(self,data,dt_num=20):
-        self.data = data #全部数据
-        self.dt_list = [] #基决策树
-        self.root_list = [] #基决策树的根结点
-        self.bagging_data = [] # bagging data
-        self.bagging_idx = []
-        self.oob_data = [] # oob data
-        self.oob_idx = []
-        self.dt_num = dt_num #基决策树的数目
-    
-    # bagging产生数据
-    def bagging(self):
-        df = self.data.df
-        #获得数据集的大下
-        data_size = df.shape[0]
-        #先获取idx 并对每个数据打上tag
-        for i in range(self.dt_num):
-            # 随机抽取data_size个样本
-            rand_idx = list(np.random.randint(0,high=data_size,size=data_size))
-            rand_idx_set = set(rand_idx)
-            rand_idx_uni = list(rand_idx_set)
-            #产生0,1,2,3,...,datasize-1的float
-            total_idx_set = set(np.linspace(0,data_size-1,num=data_size,dtype=int))
-            #获得oob的index
-            oob_idx = list(total_idx_set.difference(rand_idx_set))
-            for j in rand_idx_uni:
-                df.at[j,self.data.tag_column].append(i)
-            #df.loc[rand_idx,self.data.tag_column].append(i)
 
-            self.bagging_idx.append(rand_idx)
-            self.oob_idx.append(oob_idx)
-        
-        # 产生bagging数据和oob数据
-        for i in range(self.dt_num):
-            self.bagging_data.append(df.iloc[self.bagging_idx[i],:])
-            self.oob_data.append(df.iloc[self.oob_idx[i],:])
+class CARTTree:
+    def __init__(self, train_data, test_data):
+        self.train_data = train_data
+        self.test_data = test_data
+        self.tree = self.build_tree(train_data=self.train_data,
+                                    split_path=bytes(' ', encoding='utf-8'),
+                                    val=None,
+                                    num_flag=-1)
+        self.root = self.get_root()
 
+    def get_root(self):
+        return self.tree
 
-    def train_dt(self,train_data,split_path,val,num_flag):
-        
-        df = train_data.df # get dataframe
+    def build_tree(self, train_data, split_path, val, num_flag):
 
-        # create rfnode
-        node = RFNode(
-            data=train_data,
-            split_fea=None,
-            val=val,
-            num_flag=num_flag,
-            split_path=split_path,
-            belong_fea=None,
-            leaf_flag=0,
-            purity_flag=0
-        )
+        df = train_data.df  # get dataframe
+
+        # create a node
+        node = CARTNode(data=train_data,
+                        split_fea=None,
+                        val=val,
+                        num_flag=num_flag,
+                        split_path=split_path,
+                        belong_fea=None,
+                        leaf_flag=0,
+                        purity_flag=0)
 
         uni_class_data = node.data.class_data.unique()
         # 若该类别数为1
@@ -153,7 +232,7 @@ class RandomForest:
                                         num_columns=node.data.num_columns,
                                         class_column=node.data.class_column,
                                         class_data=node.data.class_data)
-                        node.left_child = RFNode(
+                        node.left_child = CARTNode(
                             data=data_obj,
                             split_fea=None,
                             val=None,
@@ -174,7 +253,7 @@ class RandomForest:
                             num_columns=node.data.num_columns,
                             class_column=node.data.class_column,
                             class_data=split_df[i][node.data.class_column])
-                        node.left_child = self.train_dt(
+                        node.left_child = self.build_tree(
                             train_data=data_obj,
                             split_path=split_path +
                             bytes(selected_fea, encoding='utf-8') +
@@ -195,7 +274,7 @@ class RandomForest:
                                         num_columns=node.data.num_columns,
                                         class_column=node.data.class_column,
                                         class_data=node.data.class_data)
-                        node.right_child = RFNode(
+                        node.right_child = CARTNode(
                             data=data_obj,
                             split_fea=None,
                             val=None,
@@ -216,7 +295,7 @@ class RandomForest:
                             num_columns=node.data.num_columns,
                             class_column=node.data.class_column,
                             class_data=split_df[i][node.data.class_column])
-                        node.right_child = self.train_dt(
+                        node.right_child = self.build_tree(
                             train_data=data_obj,
                             split_path=split_path +
                             bytes(selected_fea, encoding='utf-8') +
@@ -244,7 +323,7 @@ class RandomForest:
                                         num_columns=node.data.num_columns,
                                         class_column=node.data.class_column,
                                         class_data=node.data.class_data)
-                        node.left_child = RFNode(
+                        node.left_child = CARTNode(
                             data=data_obj,
                             split_fea=None,
                             val=None,
@@ -265,7 +344,7 @@ class RandomForest:
                             num_columns=node.data.num_columns,
                             class_column=node.data.class_column,
                             class_data=split_df[i][node.data.class_column])
-                        node.left_child = self.train_dt(
+                        node.left_child = self.build_tree(
                             train_data=data_obj,
                             split_path=split_path +
                             bytes(selected_fea, encoding='utf-8') +
@@ -285,7 +364,7 @@ class RandomForest:
                                         num_columns=node.data.num_columns,
                                         class_column=node.data.class_column,
                                         class_data=node.data.class_data)
-                        node.right_child = RFNode(
+                        node.right_child = CARTNode(
                             data=data_obj,
                             split_fea=None,
                             val=None,
@@ -305,7 +384,7 @@ class RandomForest:
                             num_columns=node.data.num_columns,
                             class_column=node.data.class_column,
                             class_data=split_df[i][node.data.class_column])
-                        node.right_child = self.train_dt(
+                        node.right_child = self.build_tree(
                             train_data=data_obj,
                             split_path=split_path +
                             bytes(selected_fea, encoding='utf-8') +
@@ -315,52 +394,6 @@ class RandomForest:
                             num_flag=-1)
         return node
 
-    @staticmethod
-    def get_train_params(df):
-
-        # get class_column name and feature column name
-        fea_list = list(df)
-        fea_list.pop() #弹出tags
-        fea_list.pop() #弹出classify
-        class_column = fea_list.pop()
-        fea_column = fea_list
-
-        nom_columns = []
-        num_columns = []
-        # get nominal column name and numeric column name
-        # transform bytes to str and float respectively
-        for col_name in fea_column:
-            if df[col_name].dtypes == 'object':
-                nom_columns.append(col_name)
-            else:
-                num_columns.append(col_name)
-
-        class_data = df[class_column]
-
-        return (fea_column,nom_columns,num_columns,class_column,class_data)
-
-    def train_rf(self):
-        for data_df in self.bagging_data:
-            params_list = self.get_train_params(data_df)
-            data = Data(
-                path=None,
-                dataset=None,
-                df=data_df,
-                fea_column=params_list[0],
-                nom_columns=params_list[1],
-                num_columns=params_list[2],
-                class_column=params_list[3],
-                class_data=params_list[4]
-            )
-            tree = self.train_dt(
-                train_data=data,
-                split_path=bytes(' ',encoding='utf-8'),
-                val=None,
-                num_flag=-1
-            )
-            self.dt_list.append(tree)
-            self.root_list.append(tree)
-
     # 对于数值型数据 得到分裂点
     @staticmethod
     def match_node_val(s):
@@ -368,20 +401,17 @@ class RandomForest:
         res = re.findall(r"\d+\.?\d*", s)
         val = float(res[0])
         return val
-    
-    # 测试单个oob
-    def test_dt(self,oob,k): #k代表第k个oob
-        df = oob # get dataframe
+    #在测试集上检验
+    def test(self):
+        df = self.test_data.df
 
-        node = self.root_list[k] # get root
-        #correct_num = 0
+        node = self.root
         for row in range(df.shape[0]): #最外层 遍历测试集
             # 在树中搜索 若结点是叶子结点 则循环结束
             while node.leaf_flag != 1:
                 split_fea = node.split_fea# 分裂的属性
-                split_fea_idx = self.data.fea_column.index(split_fea)
-                trans_val = df.iloc[row,split_fea_idx] # 第row行 'split_fea'列的数据
-                if split_fea in self.data.num_columns:# 若分裂属性是数值属性
+                trans_val = df.at[row,split_fea]# 第row行 'split_fea'列的数据
+                if split_fea in self.test_data.num_columns:# 若分裂属性是数值属性
                     val = None #分裂值 即divide point
                     flags = [0,0] # flag为1说明不为叶结点
                     num_flags = [-1,-1] # -1表示无 0表示<= 1表示>
@@ -427,34 +457,25 @@ class RandomForest:
             #内层循环结束 得到叶结点
             # 打上标签
             belong_fea = node.belong_fea
-            df.iloc[row,-2].append(belong_fea)
+            df.at[row,node.data.classify_column] = belong_fea
             #重置node
-            node = self.root_list[k]
-        
-        
-        
-    def test_rf(self):
-        correct_rate = 0
-        for oob in self.oob_data: #外层循环 遍历数据
-            #tmp_correct_rate = 0
-            for i in range(self.dt_num):
-                self.test_dt(oob,i)
+            node = self.root
 
-        #遍历所有的oob 每一条数据进行投票
-        oob_data_len = 0
-        correct_rate = 0
-        for oob in self.oob_data:
-            for i in range(oob.shape[0]):
-                classify_list = oob.iloc[i,-2]
-                mode = Counter(classify_list).most_common(1)[0][0]
-                if mode == oob.iloc[i,-3]:
-                    correct_rate += 1
-            oob_data_len += oob.shape[0]
-        
-        correct_rate = correct_rate / oob_data_len
-        return correct_rate
+    def get_conf_mat(self):
+        # 获取dataframe
+        df = self.test_data.df
+        labels = list(self.test_data.class_data.unique())  # 获取class 的label
+        mat_shape = len(labels)  #矩阵的秩
+        conf_mat = np.zeros([mat_shape, mat_shape])  #初始化混淆矩阵
+        judge = {'accuracy': 0, 'er': 0, 'precision': 0, 'recall': 0, 'f': 0}
 
-    
-# if __name__ == "__main__":
-#     rf = RandomForest()
+        for row in range(df.shape[0]):  #填充混淆矩阵
+            true_label = df.at[row, self.test_data.class_column]
+            pred_label = df.at[row, self.test_data.classify_column]
 
+            true_label_idx = labels.index(true_label)
+            pred_label_idx = labels.index(pred_label)
+
+            conf_mat[true_label_idx][pred_label_idx] += 1
+
+        return conf_mat, judge
