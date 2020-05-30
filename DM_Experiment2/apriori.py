@@ -1,6 +1,8 @@
 from scipy.io import arff
 import pandas as pd
 import numpy as np
+from itertools import chain,combinations
+
 
 def load():
     # load data
@@ -133,14 +135,72 @@ def run_apriori(params, l1_set, db_list):
                     sup_count += 1
             sup = sup_count / db_len
             if (sup >= min_sup):
-                fre_set[k].append((i, sup))
+                flag = 0
+                for tmp in fre_set[k]:
+                    if (i,sup) == tmp:
+                        flag = 1
+                        break
+                if flag == 0:
+                    fre_set[k].append((i, sup))
+                
         k += 1
 
     count = 1
     for i in fre_set:
-        print("L%d itemset size is:%d" % (count, len(i)))
+        if len(i) != 0:
+            print("L%d itemset size is:%d" % (count, len(i)))
         count += 1
     return fre_set
+
+def get_all_subsets(item):
+    
+    all_subsets = list(chain.from_iterable(combinations(item,r) for r in range(1,len(item)+1)))
+    all_subsets.pop()
+
+    for i in range(len(all_subsets)):
+        all_subsets[i] = set(all_subsets[i])
+
+    return all_subsets
+
+def get_fre_set_len(fre_set):
+    len = 0
+
+    tmp = fre_set[0]
+    while tmp != []:
+        len += 1
+        tmp = fre_set[len]
+    
+    return len
+
+
+def dig_rules(fre_set,min_conf):
+    strong_rules = [] #强规则
+
+    fre_set_len = get_fre_set_len(fre_set)
+
+    for i in range(1,fre_set_len):
+        fre_list = fre_set[i]
+        for j in fre_list:
+            item = j[0] # 元组中的trans
+            sup_item = j[1] # 支持度
+            item_subset = get_all_subsets(item)
+            item = set(item)
+            for subset in item_subset:
+                diff_set = item.difference(subset) #获得全集的补集
+                subset_len = len(subset)
+                tmp_list = fre_set[subset_len-1]
+                for fre_elem in tmp_list: #遍历fre_set找到subset的支持度
+                    tmp_set = fre_elem[0]
+                    tmp_sup = fre_elem[1]
+                    if set(tmp_set) == subset: #找到对应的subset
+                        conf = sup_item / tmp_sup #计算置信度
+                        if conf > min_conf:
+                            strong_rules.append(((subset,diff_set),conf)) #用元组保存数据
+                            break
+                    else:
+                        continue
+
+    return strong_rules
 
 
 if __name__ == "__main__":
@@ -151,5 +211,6 @@ if __name__ == "__main__":
     db_list = gen_database(db)
     l1_set = gen_l1(params, df, columns, db_list)
     fre_set = run_apriori(params, l1_set, db_list)
-    for i in fre_set:
-        print(i)
+    strong_rules = dig_rules(fre_set,params[1])
+    print(strong_rules)
+    
