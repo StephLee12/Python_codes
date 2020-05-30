@@ -376,6 +376,8 @@ class ID3Tree:
                         node = node.children[idx]
             # 内层循环结束 到达叶子结点
             # 将数据打上标签
+            with open('id3_data.txt','a') as f:
+                f.write(str(node.split_path,encoding='utf-8')+str('\n'))
             belong_fea = node.belong_fea
             df.at[row,node.data.classify_column] = belong_fea
             # 重置node

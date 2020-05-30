@@ -243,7 +243,7 @@ class CARTTree:
                             belong_fea=mode,
                             leaf_flag=1,
                             purity_flag=0)
-                    else:
+                    else: #不为空
                         data_obj = Data(
                             path=None,
                             dataset=None,
@@ -388,7 +388,7 @@ class CARTTree:
                             train_data=data_obj,
                             split_path=split_path +
                             bytes(selected_fea, encoding='utf-8') +
-                            bytes('\'s', encoding='utf-8') + best_nom_fea_val +
+                            bytes('\'s ', encoding='utf-8') + best_nom_fea_val +
                             bytes(' ', encoding='utf-8'),
                             val=best_nom_fea_val,
                             num_flag=-1)
@@ -456,6 +456,8 @@ class CARTTree:
                         node = node.left_child
             #内层循环结束 得到叶结点
             # 打上标签
+            with open('cart_data.txt','a') as f:
+                f.write(str(node.split_path,encoding='utf-8')+str('\n'))
             belong_fea = node.belong_fea
             df.at[row,node.data.classify_column] = belong_fea
             #重置node
