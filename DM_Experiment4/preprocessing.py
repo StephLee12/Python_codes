@@ -20,6 +20,13 @@ class Data:
         self.num_columns = num_columns  # numeric column name
         self.class_column = class_column  # label column name
         self.class_data = class_data  # label data
+        self.cluster_column = 'cluster' # 聚类后的簇号
+        # 用于DBSCAN 是否为核心对象 该列数据为0或1 0表示不为核心对象 1表示为核心对象
+        self.core_column = 'core' 
+        # 用于DBSCAN 若该数据为核心对象 哪些点在它的epsilon邻域
+        self.in_epsilon_column = 'in_epsilon'
+        
+        
 
     # clear last instance memory
     def clear_memory(self):
@@ -50,6 +57,10 @@ class Data:
                 self.num_columns.append(col_name)
 
         self.class_data = self.df[self.class_column]
+        self.df.insert(self.df.shape[1], self.cluster_column,None)
+        self.df.insert(self.df.shape[1],self.core_column,0)
+        self.df.insert(self.df.shape[1],self.in_epsilon_column,None)
+        
 
     # fill missing data
     def fill_missing_data(self):
