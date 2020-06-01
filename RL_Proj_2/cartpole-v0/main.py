@@ -52,7 +52,7 @@ class RL:
                 total_reward += reward
 
                 next_state = np.reshape(
-                    next_state,
+                    next_state, 
                     [1, self.args.get('input_size')])  # reshape next state
 
                 self.agent.store_data(state[0], action, pi_vec,
@@ -66,19 +66,27 @@ class RL:
             if epoch % 25 == 0:
                 print('(epoch,reward)=' + str((epoch, total_reward)))
 
+        file_name = 'RL_Proj_2/cartpole-v0/cartpole.txt'
+        with open(file_name,'a') as f:
+            for item in self.rewards:
+                f.write(str(item) + '\n')
         # plot figure
         plt.plot(self.rewards)
-        plt.savefig('./rewards1.png')
+        plt.xlabel('epoch')
+        plt.ylabel('rewards')
+        plt.savefig('RL_Proj_2/cartpole-v0/cartpole.png')
         plt.show()
 
 
 if __name__ == "__main__":
-    env_name = 'CartPole-v0'  # specify env name
+    env_name = ['CartPole-v0','LunarLander-v2']  # specify env name
     # "CartPole-v0"'s observation return a 1-4 array
     # the first elem is the position of the car
     # the second elem is the angle of the pole with the vertical
     # the third elem is the car's velocity
     # the last elem is the rate change of angle
     # "CartPole-v0"'s action has two option 0 for go left and 1 for go right
-    rl_obj = RL(env_name)  # create a RL instance
+
+    #该模型在LunarLander-v2上测试效果不好
+    rl_obj = RL(env_name[0])  # create a RL instance
     rl_obj.train()  # train
