@@ -419,8 +419,9 @@ class Net:
 
         return sort_res
 
-    # 仿真之后排序
+    # 仿真排序
     def sir_sort(self):
+        # 进行仿真
         self.sir_simulation()      
         # 因为进行了1000次 仿真 先计算sir_val的均值
         for node in self.node_list:
@@ -455,7 +456,7 @@ class Net:
                     max_len[1] = len(node.infected_record[i])
                 if len(node.removed_record[i]) > max_len[2]:
                     max_len[2] = len(node.removed_record[i])
-            # 将不满足最大步长的仿真结果 填零
+            # 将不满足最大步长的仿真结果 填充值
             records = [node.suspect_record,node.infected_record,node.removed_record]
             for i in range(len(records)):
                 record = records[i]
