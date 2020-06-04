@@ -292,14 +292,12 @@ class Net:
                 neighbor = int(neighbor)
                 neighbor_degree.append(len(self.adj_dict[neighbor]))
                 neighbor_degree_sum += len(self.adj_dict[neighbor])
-
             # 计算熵
             for degree in neighbor_degree:
                 prob = degree / neighbor_degree_sum
                 ent += prob * np.log(prob)
 
             sort_dict[node.idx] = -ent
-
         # 对信息熵排序
         sort_res = []
         sort_tuple = sorted(sort_dict.items(),
@@ -307,11 +305,9 @@ class Net:
                             reverse=True)
         for elem in sort_tuple:
             sort_res.append(elem[0])
-
         self.ent_res = sort_res
         print('entropy sort')
         print(sort_res)
-
 
         relation = self.calc_relation(sort_res)
         self.ent_relation = relation
@@ -479,7 +475,7 @@ class Net:
             plt.legend()
             plt.xlabel('Timestep')
             plt.ylabel('Number')
-            plt.savefig('DataAnalysisProjectDesign/Experiment3/node{}.png'.format(node.idx))
+            plt.savefig('DataAnalysisProjectDesign/Experiment3_4/node{}.png'.format(node.idx))
 
     # 计算相似度
     def calc_relation(self,sort_res):
@@ -504,7 +500,7 @@ class Net:
 
         
 if __name__ == "__main__":
-    file_name = 'DataAnalysisProjectDesign/Experiment3/net.txt'
+    file_name = 'DataAnalysisProjectDesign/Experiment3_4/net5.txt'
     net = Net(file_name)
     net.sir_sort()
     net.degree_sort()
