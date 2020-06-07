@@ -17,7 +17,7 @@ class Args:
         self.gamma = 0.99 #衰减因子
         self.epsilon = 0.2 # 用于计算J_ppo
         self.lr = 0.002 #学习率
-        self.max_epochs = 1000 #最多训练回合数
+        self.max_epochs = 1500 #最多训练回合数
         self.max_timesteps = 300 #在一个回合中最大步数
         self.update_timestep = 2000 # 每2000个步长更新一次policy
         self.update_epoch = 4 # update policy 的回合数

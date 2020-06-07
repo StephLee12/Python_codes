@@ -6,17 +6,18 @@
     "python.linting.flake8Args": [
         "--max--line-lenght=64"
     ],
+    "python.terminal.activateEnvironment": false,
     "workbench.settings.editor": "json",
     "workbench.colorTheme": "Atom One Dark",
     "workbench.iconTheme": "ayu",
     "workbench.settings.openDefaultSettings": true,
     "editor.fontSize": 16,
     "editor.fontWeight": "500",
-    "debug.console.fontSize":16,
+    "debug.console.fontSize": 16,
     "terminal.integrated.fontSize": 16,
     "code-runner.executorMap": {
-        "python":"$pythonPath -u $fullFileName"
+        "python": "$pythonPath -u $fullFileName"
     },
     "code-runner.clearPreviousOutput": true,
-    "code-runner.showExecutionMessage":false
+    "code-runner.showExecutionMessage": false
 }
