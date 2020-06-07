@@ -99,7 +99,7 @@ class DBSCAN:
             df = self.data.df[self.data.df[self.data.cluster_column] == idx]
             df_size = str(df.shape[0])
             # 获取类别
-            label = str(df[self.data.class_column].unique()[0],encoding='utf-8')
+            label = str(df[self.data.class_column].mode().get(0),encoding='utf-8')
             cluster_size.append('cluster '+str(idx)+ ' '+label + '\'s size:'+df_size)
             ax = df.plot.scatter(
                 x=self.data.fea_column[0],
@@ -110,5 +110,6 @@ class DBSCAN:
             )
         for elem in cluster_size:
             print(elem)
+        plt.title('DBSCAN Clustering Result')
         plt.show()
 
