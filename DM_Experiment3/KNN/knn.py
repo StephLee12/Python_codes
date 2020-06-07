@@ -35,11 +35,19 @@ def cal_dis(vec_train,vec_test):
 
 def cal_correct_rate(test_df,columns):
     
+    # 构建混淆矩阵
+    labels = list(test_df[columns[-2]].unique())
+    mat_shape = len(labels)
+    conf_mat = np.zeros([mat_shape,mat_shape])
+    
     correct_sum = 0
     for i in range(test_df.shape[0]):
+        true_label_idx = labels.index(test_df.at[i,columns[-2]])
+        pred_label_idx = labels.index(test_df.at[i,columns[-1]])
+        conf_mat[true_label_idx][pred_label_idx] += 1
         if test_df.at[i,columns[-2]] == test_df.at[i,columns[-1]]:
             correct_sum += 1
-    return correct_sum / test_df.shape[0]
+    return conf_mat,correct_sum / test_df.shape[0]
 
 # knn main function
 def knn_classify_main(train_df,test_df,columns,k=3):
@@ -47,7 +55,7 @@ def knn_classify_main(train_df,test_df,columns,k=3):
     # add a new column to record classification result
     columns.append('class_classify')
     test_df.insert(len(columns)-1,'class_classify','')
-
+    
     for i in range(test_df.shape[0]):
         # get test_data vector
         vec_test = []
@@ -76,8 +84,8 @@ def knn_classify_main(train_df,test_df,columns,k=3):
         test_df.at[i,columns[-1]] = vote_res
     
     
-    correct_rate = cal_correct_rate(test_df,columns)
-    return test_df,correct_rate
+    conf_mat,correct_rate = cal_correct_rate(test_df,columns)
+    return test_df,conf_mat,correct_rate
 
 
 
@@ -85,7 +93,8 @@ if __name__ == "__main__":
     url = ['DM_Experiment3/KNN/iris.2D.train.arff', 'DM_Experiment3/KNN/iris.2D.test.arff']
     train_data,columns = load_normlize_data(url[0])
     test_data,_ = load_normlize_data(url[1])
-    test_df,correct_rate = knn_classify_main(train_data,test_data,columns,k=3)
+    test_df,conf_mat,correct_rate = knn_classify_main(train_data,test_data,columns,k=3)
+    print(conf_mat)
     print('knn classification correct rate is:' + str(correct_rate))
     
     
