@@ -382,6 +382,7 @@ class RandomForest:
 
     def test_rf(self):
         correct_rate = 0
+        # 遍历oob数据 每个决策树投票
         for oob in self.oob_data:  #外层循环 遍历数据
             for i in range(oob.shape[0]):  #遍历每个oob
                 data = oob.iloc[i, :]
@@ -390,20 +391,33 @@ class RandomForest:
                         continue
                     else:
                         self.test_dt(data, j)
+        
+        # 初始化混淆矩阵
+        labels = list(self.data.class_data.unique())
+        mat_shape = len(labels)
+        conf_mat = np.zeros([mat_shape,mat_shape])
 
         #遍历所有的oob 每一条数据进行投票
         oob_data_len = 0
         correct_rate = 0
         for oob in self.oob_data:
             for i in range(oob.shape[0]):
+                # 获得该条数据的投票结果
                 classify_list = oob.loc[i, self.data.classify_column]
                 mode = Counter(classify_list).most_common(1)[0][0]
+                # 将其填入混淆矩阵
+                true_label = oob.loc[i,self.data.class_column]
+                pred_label = mode
+                true_label_idx = labels.index(true_label)
+                pred_label_idx = labels.index(pred_label)
+                conf_mat[true_label_idx][pred_label_idx] += 1
+                # 如果分类正确 对应计数加1
                 if mode == oob.loc[i, self.data.class_column]:
                     correct_rate += 1
             oob_data_len += oob.shape[0]
 
         correct_rate = correct_rate / oob_data_len
-        return correct_rate
+        return correct_rate,conf_mat
 
 
 # if __name__ == "__main__":
