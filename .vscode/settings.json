@@ -6,7 +6,7 @@
     "python.linting.flake8Args": [
         "--max--line-lenght=64"
     ],
-    "python.terminal.activateEnvironment": false,
+    "python.terminal.activateEnvironment": true,
     "workbench.settings.editor": "json",
     "workbench.colorTheme": "Atom One Dark",
     "workbench.iconTheme": "ayu",

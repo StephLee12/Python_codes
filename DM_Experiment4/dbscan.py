@@ -78,7 +78,6 @@ class DBSCAN:
             if core_flag == 0: #不是核心对象
                 idx = non_selected.index(rand_choice)
                 non_selected.pop(idx)
-                break
             else: #若为核心对象
                 df.loc[rand_choice,self.data.cluster_column] = cluster_count #标记簇号
                 # 将该结点标记为已处理 即从non_selected中弹出
