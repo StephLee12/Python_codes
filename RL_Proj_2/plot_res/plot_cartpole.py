@@ -57,20 +57,20 @@ def pre_dqn_cartpole():
 
 def plot_cartpole():
     
-    ppo_reward = pre_ppo_cartpole()
+    #ppo_reward = pre_ppo_cartpole()
     dqn_reward = pre_dqn_cartpole()
-    ddqn_reward = pre_ddqn_cartpole()
+    #ddqn_reward = pre_ddqn_cartpole()
     
 
     plt.figure()
-    plt.title('Implementing 3 algorithms on CartPole-v0')
-    plt.plot(ppo_reward,label='PPO',color='r')
+    #plt.title('Implementing 3 algorithms on CartPole-v0')
+    #plt.plot(ppo_reward,label='PPO',color='r')
     plt.plot(dqn_reward,label='DQN',color='g')
-    plt.plot(ddqn_reward,label='DDQN',color='b')
+    #plt.plot(ddqn_reward,label='DDQN',color='b')
     plt.xlabel('Epoch = tick times 20')
     plt.ylabel('Rewards')
     plt.legend()
-    plt.savefig('RL_Proj_2/plot_res/cartpole-v0.png')
+    plt.savefig('RL_Proj_2/plot_res/dqn_cartpole-v0.png')
     plt.show()
 
 if __name__ == "__main__":
