@@ -7,8 +7,11 @@ import random
 # subclass
 import preprocess
 
+from kmeans import KMeans
+
 class DBSCAN:
     def __init__(self,info_path,data_path,epsilon,min_pts):
+        #super(DBSCAN,self).__init__(info_path,data_path)
         self.info_path = info_path  #股票信息数据的路径
         self.data_path = data_path  #股票数据的路径
         self.info_dict = self.get_info_dict()
@@ -268,7 +271,16 @@ class DBSCAN:
 if __name__ == "__main__":
     info_path = 'DataAnalysisProjectDesign/Experiment5/stock_info.csv'
     data_path = 'DataAnalysisProjectDesign/Experiment5/data'
-    epsilon,min_pts = 0.35 , 20
+    arg_list = [
+        (0.2,20),(0.2,25),(0,2,30),
+        (0.25,20),(0.25,25),(0.25,30),
+        (0.3,20),(0.3,25),(0.3,30),
+        (0.35,20),(0.35,25),(0.35,30),
+        (0.4,20),(0.4,25),(0.4,30),
+        (0.45,20),(0.45,25),(0.4,30),
+        (0.5,20),(0.5,25),(0.5,30)
+    ]
+    epsilon,min_pts = arg_list[9][0],arg_list[9][1]
     dbscan_obj = DBSCAN(info_path, data_path,epsilon,min_pts)
     dbscan_obj.cluster_main()
     purity = dbscan_obj.calc_purity()

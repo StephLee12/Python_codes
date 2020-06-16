@@ -62,7 +62,6 @@ class KMeans:
 
         # 在最后插入新的一列，用于存储聚类结果
         df.insert(df.shape[1], 'Cluster', '')
-        # 返回df的转置
         return df
 
     # 获取要聚类的簇数目

@@ -57,5 +57,4 @@ def gain_ratio(ig,splitInfo):
 if __name__ == "__main__":
     df,columns,last_column= load()
     ig = IG(df,columns,last_column)
-    #print(ig)
-    print(np.log2())
+    print(ig)
