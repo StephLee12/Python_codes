@@ -44,7 +44,7 @@ class DiffusionBGRecom:
     def diffusion(self):
         # 初始化扩散后的二部图
         first_diff_mat = np.zeros_like(self.mat)
-        second_diff_mat = np.zeros_list(self.mat)
+        second_diff_mat = np.zeros_like(self.mat)
 
         # 由item向user扩散
         for key in self.item_dict:
@@ -88,7 +88,7 @@ class DiffusionBGRecom:
                     vector[j] = 1
             
             # 矩阵相乘
-            res_vec = np.dot(self.diffusion_mat,vector).transpose()
+            res_vec = np.transpose(np.dot(self.conduction_mat,vector))
 
             # 获得从大到小的排序索引
             sort_res_idx = list(reversed(np.argsort(res_vec)))
