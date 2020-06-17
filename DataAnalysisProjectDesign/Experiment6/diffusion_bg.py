@@ -88,7 +88,7 @@ class DiffusionBGRecom:
                     vector[j] = 1
             
             # 矩阵相乘
-            res_vec = np.transpose(np.dot(self.conduction_mat,vector))
+            res_vec = np.transpose(np.dot(self.diffusion_mat,vector))
 
             # 获得从大到小的排序索引
             sort_res_idx = list(reversed(np.argsort(res_vec)))

@@ -1,5 +1,8 @@
 import numpy as np 
 
+user_like = 3 #3分之上用户喜欢
+user_diss = 2 #2分以下用户不喜欢
+
 class ThermalConBGRecom:
     def __init__(self,mat_path,recommend_k=50):
         self.mat_path = mat_path #存储打分矩阵的路径
