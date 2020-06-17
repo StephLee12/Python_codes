@@ -31,7 +31,7 @@ class ThermalConBGRecom:
             user_dict[i] = non_zero_idx
         
         for j in range(self.mat.shape[1]):
-            series = self.mat[j]
+            series = self.mat[:][j]
             non_zero_idx = list(np.where(series != 0))
             item_dict[j] = non_zero_idx
         
