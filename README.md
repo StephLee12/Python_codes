@@ -1,5 +1,3 @@
-# Some Codes,Experiments,Projects via Python
+# Python Codes
 
-Include Data Mining Course, Data Structure and Algorithms(self-learning)
-
-To be continued
+Some Codes,Experiments,Projects via Python
