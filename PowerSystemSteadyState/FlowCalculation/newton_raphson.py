@@ -1,31 +1,36 @@
 import numpy as np
 import cmath
-from scipy.linalg import lu_factor,lu_solve
+from scipy.linalg import lu
+from scipy.io import savemat
 
 from setup import FlowCalculationSetUp
 
-########节点1是平衡节点######
-
+# 若出现运算异常 throw an exception
 np.seterr('raise')
 
 class NetwonRaphsonFlowCalculation:
     def __init__(self, epsilon=0.001):
-        self.node_number, self.balance_node, self.Y, self.power_dict = self.init_params(
+        # 节点个数、平衡节点编号，导纳矩阵，功率，节点列表，线路数据
+        self.node_number, self.balance_node, self.Y, self.power_dict, self.node_list,self.branches = self.init_params(
         )
         self.node_voltage = self.init_node_voltage()  # 节点的电压
         self.PQ_node = self.init_PQ_node()  # PQ节点编号
-        self.PQ_node_power_unbal = self.init_PQ_node_power_unbal(
-        )  # PQ节点有有功无功功率
-        self.jacobian_mat = np.zeros((len(self.PQ_node)*2, len(self.PQ_node)*2))
-        self.solution = self.init_solution()
+        # PQ节点有有功无功功率
+        self.PQ_node_power_unbal = self.init_PQ_node_power_unbal()
+        # 雅可比矩阵
+        self.jacobian_mat = np.zeros(
+            (len(self.PQ_node) * 2, len(self.PQ_node) * 2))
+        self.solution = self.init_solution()  # 修正方程式的解
         self.iteration = 0  # 迭代次数
-        self.epsilon = epsilon  # 修正阈值
+        self.epsilon = epsilon  # 迭代结束阈值
         self.balance_node_power = complex(0, 0)  # 平衡节点的功率
+        self.branch_power = np.zeros((self.node_number,self.node_number),dtype=complex) # 线路损耗
+        self.total_cost = complex(0,0) # 总网损
 
     # 设置节点数量，平衡节点编号，节点导纳矩阵，节点功率
     def init_params(self):
         setup = FlowCalculationSetUp()
-        return setup.node_number, setup.balance_node, setup.YB, setup.power
+        return setup.node_number, setup.balance_node, setup.YB, setup.power, setup.node_list,setup.branches
 
     # 初始化节点电压
     def init_node_voltage(self):
@@ -53,39 +58,42 @@ class NetwonRaphsonFlowCalculation:
 
     #计算节点编号为node_index的PQ节点的功率不平衡量
     def calc_unbal_PQ(self, node_index):
-        sum_P, sum_Q = 0, 0
+        sum_P_1, sum_P_2, sum_Q_1, sum_Q_2 = 0, 0, 0, 0
         # 编号为node_index节点的电压的实部和虚部
         e_node, f_node = self.node_voltage[node_index * 2 -
                                            1], self.node_voltage[node_index * 2
                                                                  - 2]
         # 根据公式 4-38a 4-38b page128
-        for node_num in self.PQ_node:
-            sum_P += (e_node * (
-                self.Y[node_index - 1][node_num - 1].real *
-                self.node_voltage[node_num * 2 - 1] -
-                self.Y[node_index - 1][node_num - 1].imag *
-                self.node_voltage[node_num * 2 - 2]) + f_node * (
-                    self.Y[node_index - 1][node_num - 1].real *
-                    self.node_voltage[node_num * 2 - 2] +
-                    self.Y[node_index - 1][node_num - 1].imag *
-                    self.node_voltage[node_num * 2 - 1]))
+        for node_num in self.node_list:
+            sum_P_1 += (self.Y[node_index - 1][node_num - 1].real *
+                        self.node_voltage[node_num * 2 - 1] -
+                        self.Y[node_index - 1][node_num - 1].imag *
+                        self.node_voltage[node_num * 2 - 2])
+            sum_P_2 += (self.Y[node_index - 1][node_num - 1].real *
+                        self.node_voltage[node_num * 2 - 2] +
+                        self.Y[node_index - 1][node_num - 1].imag *
+                        self.node_voltage[node_num * 2 - 1])
+            sum_Q_1 += (self.Y[node_index - 1][node_num - 1].real *
+                        self.node_voltage[node_num * 2 - 1] -
+                        self.Y[node_index - 1][node_num - 1].imag *
+                        self.node_voltage[node_num * 2 - 2])
+            sum_Q_2 += (self.Y[node_index - 1][node_num - 1].real *
+                        self.node_voltage[node_num * 2 - 2] +
+                        self.Y[node_index - 1][node_num - 1].imag *
+                        self.node_voltage[node_num * 2 - 1])
 
-            sum_Q += (f_node * (
-                self.Y[node_index - 1][node_num - 1].real *
-                self.node_voltage[node_num * 2 - 1] -
-                self.Y[node_index - 1][node_num - 1].imag *
-                self.node_voltage[node_num * 2 - 2]) - e_node * (
-                    self.Y[node_index - 1][node_num - 1].real *
-                    self.node_voltage[node_num * 2 - 2] +
-                    self.Y[node_index - 1][node_num - 1].imag *
-                    self.node_voltage[node_num * 2 - 1]))
-
+        # e_i*sum(G_ij*e_j-B_ij*f_j)+f_i*sum(G_ij*f_j+B_ij*e_j)
+        sum_P = e_node * sum_P_1 + f_node * sum_P_2
+        # f_i*sum(G_ij*e_j-B_ij*f_j) + e_i*sum(G_ij*f_j+B_ij*e_j)
+        sum_Q = f_node * sum_Q_1 - e_node * sum_Q_2
         # 无功不平衡量
-        self.PQ_node_power_unbal[node_index * 2 -
-                                 3] = self.power_dict[node_index]['power'].imag - sum_Q
+        self.PQ_node_power_unbal[
+            node_index * 2 -
+            3] = self.power_dict[node_index]['power'].imag - sum_Q
         # 有功不平衡量
-        self.PQ_node_power_unbal[node_index * 2 -
-                                 4] = self.power_dict[node_index]['power'].real - sum_P
+        self.PQ_node_power_unbal[
+            node_index * 2 -
+            4] = self.power_dict[node_index]['power'].real - sum_P
 
     # 计算雅可比矩阵的对角元
     def calc_jacobian_mat_diag(self, node_index, node_num):
@@ -97,29 +105,31 @@ class NetwonRaphsonFlowCalculation:
                               1].real, self.node_voltage[node_num * 2 - 2]
         sum_gf_plus_be = 0
         sum_ge_minus_bf = 0
-        for node_pos in self.PQ_node:
+        for node_pos in self.node_list:
             if node_pos != node_num:
                 G_ij, f_j = self.Y[node_num -
-                                   1][node_pos-1].real, self.node_voltage[
-                                       node_num * 2 - 2]
+                                   1][node_pos -
+                                      1].real, self.node_voltage[node_pos * 2 -
+                                                                 2]
                 B_ij, e_j = self.Y[node_num -
-                                   1][node_pos-1].imag, self.node_voltage[
-                                       node_num * 2 - 1]
+                                   1][node_pos -
+                                      1].imag, self.node_voltage[node_pos * 2 -
+                                                                 1]
                 sum_gf_plus_be += (G_ij * f_j + B_ij * e_j)
                 sum_ge_minus_bf += (G_ij * e_j - B_ij * f_j)
 
-        self.jacobian_mat[node_num * 2 - 4][
-            node_num * 2 -
-            4] = -B_ii * e_i + G_ii * f_i + sum_gf_plus_be  # H_ii
-        self.jacobian_mat[node_num * 2 - 4][
-            node_num * 2 -
-            3] = G_ii * e_i + B_ii * f_i + sum_ge_minus_bf  # N_ii
-        self.jacobian_mat[node_num * 2 - 3][
-            node_num * 2 -
-            4] = -G_ii * e_i - B_ii * f_i + sum_ge_minus_bf  # J_ii
-        self.jacobian_mat[node_num * 2 - 3][
-            node_num * 2 -
-            3] = -B_ii * e_i + G_ii * f_i - sum_gf_plus_be  # L_ii
+        self.jacobian_mat[node_num * 2 -
+                          4][node_num * 2 -
+                             4] = 2 * G_ii * f_i + sum_gf_plus_be  # H_ii
+        self.jacobian_mat[node_num * 2 -
+                          4][node_num * 2 -
+                             3] = 2 * G_ii * e_i + sum_ge_minus_bf  # N_ii
+        self.jacobian_mat[node_num * 2 -
+                          3][node_num * 2 -
+                             4] = -2 * B_ii * f_i + sum_ge_minus_bf  # J_ii
+        self.jacobian_mat[node_num * 2 -
+                          3][node_num * 2 -
+                             3] = -2 * B_ii * e_i - sum_gf_plus_be  # L_ii
 
     # 计算雅可比矩阵的元素(非对角元)
     def calc_jacobian_mat_no_diag(self, node_index, node_num):
@@ -153,94 +163,68 @@ class NetwonRaphsonFlowCalculation:
             else:
                 self.calc_jacobian_mat_no_diag(node_index, node_num)
 
-    # 矩阵的LU分解(Crout分解)
-    # def jacabian_lu_composition(self):
-    #     # 下三角
-    #     L = np.zeros_like(self.jacobian_mat)
-    #     # 上三角
-    #     U = np.zeros_like(self.jacobian_mat)
-
-    #     # 若雅可比矩阵不是方阵
-    #     if L.shape[0] != L.shape[1]:
-    #         Exception('something wrong with jacobian matrix\'s rank')
-
-    #     shape = L.shape[0]
-
-    #     for k in range(shape):
-    #         U[k,k] = 1
-    #         for j in range(k,shape):
-    #             sum_0 = sum(L[k,s]*U[s,j] for s in range(1,k-1))
-    #             L[j,k] = self.jacobian_mat[k][k] - sum_0
-    #         for j in range(k,shape):
-    #             sum_1 = sum(L[k,s]*U[s,j] for s in range(1,k-1))
-    #             U[k,j] = (self.jacobian_mat[k,j]-sum_1) / L[k,k]
-        
-
-        # # 计算l_i1
-        # for i in range(shape):
-        #     L[i][0] = self.jacobian_mat[i][0]
-        #     U[i][i] = 1 # 上三角对角线元素全为1
-        # # 计算u_1j
-        # for j in range(1,shape):
-        #     U[0][j] = self.jacobian_mat[0][j] / L[0][0]
-
-        # for k in range(1, shape):
-        #     #计算l_ik
-        #     for i in range(k, shape):
-        #         tmp = 0
-        #         for r in range(k):
-        #             tmp += (L[i][r] * U[r][k])
-        #         L[i][k] = self.jacobian_mat[i][k] - tmp
-        #     # 计算u_kj
-        #     for j in range(k + 1, shape):
-        #         tmp = 0
-        #         for r in range(k):
-        #             tmp += (L[k][r] * U[r][j])
-        #         U[k][j] = (self.jacobian_mat[k][j] -
-        #                            tmp) / L[k][k]
-
-        # return L, U
-
-    # 解修正方程式 Ax=b
-    # A为雅可比矩阵 x为电压修正量 b为功率不平衡量
-    def solve_modified_func(self):
-        # 对雅可比矩阵进行LU分解
-        lu,piv = lu_factor(self.jacobian_mat)
-        self.solution = lu_solve((lu,piv),self.PQ_node_power_unbal)
-        # _,L,U = scipy.linalg.lu(self.jacobian_mat)
-        # L, U = self.jacabian_lu_composition()
-        # L = np.nan_to_num(L)
-        # U = np.nan_to_num(U)
-
-        # 顺代求解 Ly=b
-        # y = np.zeros_like(self.PQ_node_power_unbal)
-        # shape = y.shape[0]
-        # y[0] = self.PQ_node_power_unbal[0] / L[0][0]
-        # for k in range(1, shape):
-        #     tmp = 0
-        #     for r in range(1, k):
-        #         tmp += (L[k - 1][r - 1] * y[r - 1])
-        #     y[k -
-        #       1] = (self.PQ_node_power_unbal[k - 1] - tmp) / (L[k - 1][k - 1])
-
-        # 回代求解 Ux=y
-        # self.solution[-1] = y[-1]
-        # for k in range(shape - 1, 0, -1):
-        #     tmp = 0
-        #     for r in range(k + 1, shape + 1):
-        #         tmp += (U[k - 1][r - 1] * self.solution[r - 1])
-        #     self.solution[k - 1] = y[k - 1] - tmp
-
     # 输出每个节点的幅值和相角
     def output_node_voltage(self):
-        node_list = [i for i in range(1,self.node_number+1)]
-        for node_index in node_list:
-            voltage_complex = complex(self.node_voltage[node_index*2-1],self.node_voltage[node_index*2-2]) # 得到每个节点电压的直角坐标表示
-            voltage_complex = list(cmath.polar(voltage_complex)) # 转换为极坐标 得到幅值和相角
-            voltage_complex[1] *= (180/np.pi) # 将弧度转换为角度
-            print('节点{}的电压幅值为{},相角为{}'.format(node_index,voltage_complex[0],voltage_complex[1]))
+        print('##########每个节点的电压##########')
+        for node_index in self.node_list:
+            voltage_complex = complex(self.node_voltage[node_index * 2 - 1],
+                                      self.node_voltage[node_index * 2 -
+                                                        2])  # 得到每个节点电压的直角坐标表示
+            voltage_complex = list(
+                cmath.polar(voltage_complex))  # 转换为极坐标 得到幅值和相角
+            voltage_complex[1] *= (180 / np.pi)  # 将弧度转换为角度
+            print('Node{}: Voltage Magnitude is {} Phase Angle is {}°'.format(
+                node_index, round(voltage_complex[0], 4),
+                round(voltage_complex[1], 4)))
 
-    def main_iter_loop(self):  # Newton-Raphson迭代的循环
+    # 计算平衡节点的功率和线路功率
+    def calc_balance_node_power(self):
+        print('##########平衡节点功率及总网损##########')
+        
+        # 计算平衡节点功率
+        sum_y_1j_u_j = 0
+
+        for node_index in self.node_list:
+            y_1j = self.Y[0][node_index-1]
+            u_j = complex(self.node_voltage[node_index*2-1],self.node_voltage[node_index*2-2])
+            sum_y_1j_u_j += (y_1j.conjugate()*u_j.conjugate())
+        
+        u_1 = complex(self.node_voltage[1], self.node_voltage[0])
+        self.balance_node_power = u_1 * sum_y_1j_u_j
+        print('The power of balance node is {}+{}j'.format(round(self.balance_node_power.real,4),round(self.balance_node_power.imag,4)))
+
+        # 计算总网损
+        sum_power_PQ = complex(0,0)
+        for node_index in self.PQ_node:
+            sum_power_PQ += self.power_dict[node_index]['power']
+        
+        self.total_cost = self.balance_node_power + sum_power_PQ
+        print('The total cost of the net is {}+{}j'.format(round(self.total_cost.real,4),round(self.total_cost.imag,4)))
+
+    # 计算线路损耗
+    def calc_branch_power(self):
+        print('##########每条线路的功率##########')
+        for branch in self.branches:
+            # 从source到end的线路的导纳数据
+            source,end,conductance,half_y = branch[0],branch[1],branch[2],branch[3]
+            U_source = complex(self.node_voltage[source*2-1],self.node_voltage[source*2-2])
+            U_end = complex(self.node_voltage[end*2-1],self.node_voltage[end*2-2])
+            half_y_con,conductance_con = half_y.conjugate(),conductance.conjugate()
+            # S_source_end = U_source[U_source*y_half_y+(U_source-U_end)*conductance]
+            self.branch_power[source-1][end-1] = U_source*(
+                U_source.conjugate()*half_y_con+
+                (U_source.conjugate()-U_end.conjugate())*conductance_con
+            )
+            # S_end_source = S_end[U_end*y_half+(U_end-U_source)*conductance]
+            self.branch_power[end-1][source-1] = U_end*(
+                U_end.conjugate()*half_y_con+
+                (U_end.conjugate()-U_source.conjugate())*conductance_con
+            )
+            print('Branch power from Node{} to Node{} is {}+{}j'.format(source,end,round(self.branch_power[source-1][end-1].real,4),round(self.branch_power[source-1][end-1].imag,4)))
+            print('Branch power from Node{} to Node{} is {}+{}j'.format(end,source,round(self.branch_power[end-1][source-1].real,4),round(self.branch_power[end-1][source-1].imag,4)))
+
+    # Newton-Raphson迭代 main function
+    def run(self): 
         iteration = 0
         max_delta_e = float('inf')
         max_delta_f = float('inf')
@@ -248,16 +232,19 @@ class NetwonRaphsonFlowCalculation:
         while (abs(max_delta_e) > self.epsilon) or (abs(max_delta_f) >
                                                     self.epsilon):
             iteration += 1
+            # 计算编号为node_index的节点的功率不平衡量和雅可比矩阵分量
             for node_index in self.PQ_node:
-                # 计算编号为node_index的节点的功率不平衡量
                 self.calc_unbal_PQ(node_index)
                 self.calc_jacobian_mat(node_index)
 
-            # 解修正方程式
-            #self.solve_modified_func()
-            lu,piv = lu_factor(self.jacobian_mat)
-            self.solution = lu_solve((lu,piv),self.PQ_node_power_unbal)
-            
+            # 解修正方程式 LU分解
+            _, L, U = lu(self.jacobian_mat)
+            # savemat('jacobian.mat', {'jacobian': self.jacobian_mat})
+            # savemat('b.mat', {'b': self.PQ_node_power_unbal})
+            L_inv, U_inv = np.linalg.inv(L), np.linalg.inv(U)
+            y = L_inv @ self.PQ_node_power_unbal
+            self.solution = U_inv @ y
+
             # 判断迭代是否结束
             shape = self.solution.shape[0]
             delta_f_arr, delta_e_arr = np.zeros((int(shape / 2), 1)), np.zeros(
@@ -269,44 +256,32 @@ class NetwonRaphsonFlowCalculation:
             # 更新最大的修正量
             tmp_delta_e = np.max(np.abs(delta_e_arr))
             tmp_delta_f = np.max(np.abs(delta_f_arr))
-            
+
             if tmp_delta_e < max_delta_e:
                 max_delta_e = tmp_delta_e
             if tmp_delta_f < max_delta_f:
                 max_delta_f = tmp_delta_f
-            
-            # 更新节点电压 
+
+            # 更新节点电压
             for node_index in self.PQ_node:
                 self.node_voltage[node_index * 2 -
-                                1] += self.solution[node_index * 2 - 3]  # 电压实部
+                                  1] += self.solution[node_index * 2 -
+                                                      3]  # 电压实部
                 self.node_voltage[node_index * 2 -
-                                2] += self.solution[node_index * 2 - 4]  # 电压虚部
-            print('test')
+                                  2] += self.solution[node_index * 2 -
+                                                      4]  # 电压虚部
 
         self.iteration = iteration
-        print('迭代次数：{}'.format(self.iteration))
-
-        # # 迭代结束 计算各PQ节点的电压
-        # for node_index in self.PQ_node:
-        #     self.node_voltage[node_index * 2 -
-        #                       1] += self.solution[node_index * 2 - 3]  # 电压实部
-        #     self.node_voltage[node_index * 2 -
-        #                       2] += self.solution[node_index * 2 - 4]  # 电压虚部
-        
+        print('##########迭代次数##########')
+        print('Newton-Raphson\'s Iteration Times：{}'.format(self.iteration))
         # 输出每个节点的电压幅值和相角
         self.output_node_voltage()
-
-        # 计算平衡节点功率
-        tmp = 0
-        node_list = [i for i in range(1, self.node_number + 1)]
-        for node_index in node_list:
-            tmp += (self.Y[0][node_index - 1].conjugate() *
-                    complex(self.node_voltage[node_index * 2 - 1],
-                            self.node_voltage[node_index * 2 - 2]).conjugate())
-        u_1 = complex(self.node_voltage[1], self.node_voltage[0])
-        self.balance_node_power = u_1 * tmp
+        # 计算平衡节点功率和总网损
+        self.calc_balance_node_power()
+        # 计算线路功率
+        self.calc_branch_power()
 
 
 if __name__ == "__main__":
     obj = NetwonRaphsonFlowCalculation()
-    obj.main_iter_loop()
+    obj.run()

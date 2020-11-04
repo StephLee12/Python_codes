@@ -1,5 +1,10 @@
 # Calculate Flow in IEEE 9 Nodes Model
 
+- Author: Jinhao Li
+- Place：UESTC
+- Date: Oct.30 2020
+- Programming Language: Python
+
 ## Data Input
 
 - ``branch_data.txt``每一列的数据分别为
