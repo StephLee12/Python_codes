@@ -11,6 +11,7 @@
     "workbench.colorTheme": "Atom One Dark",
     "workbench.iconTheme": "ayu",
     "workbench.settings.openDefaultSettings": true,
+    "editor.fontFamily":"Consolas, 'Courier New', monospace",
     "editor.fontSize": 16,
     "editor.fontWeight": "500",
     "debug.console.fontSize": 16,

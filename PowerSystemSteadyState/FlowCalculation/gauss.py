@@ -7,7 +7,7 @@ np.seterr('raise')
 
 
 class GaussFlowCalculation:
-    def __init__(self, epsilon=0.0001):
+    def __init__(self, epsilon=0.001):
         # 节点个数 导纳矩阵 功率 节点列表 线路数据
         self.node_number, self.balance_node, self.Y, self.power_dict, self.node_list, self.branches = self.init_params(
         )
@@ -64,7 +64,7 @@ class GaussFlowCalculation:
 
         u_1 = self.node_voltage[0]
         self.balance_node_power = u_1 * sum_y_1j_u_j
-        print('The power of balance node is {}+{}j'.format(
+        print('The power of balance node is {}+({})j'.format(
             round(self.balance_node_power.real, 4),
             round(self.balance_node_power.imag, 4)))
 
@@ -74,7 +74,7 @@ class GaussFlowCalculation:
             sum_power_PQ += self.power_dict[node_index]['power']
 
         self.total_cost = self.balance_node_power + sum_power_PQ
-        print('The total cost of the net is {}+{}j'.format(
+        print('The total cost of the net is {}+({})j'.format(
             round(self.total_cost.real, 4), round(self.total_cost.imag, 4)))
 
     # 计算线路损耗
@@ -96,11 +96,11 @@ class GaussFlowCalculation:
             self.branch_power[end - 1][source - 1] = U_end * (
                 U_end.conjugate() * half_y_con +
                 (U_end.conjugate() - U_source.conjugate()) * conductance_con)
-            print('Branch power from Node{} to Node{} is {}+{}j'.format(
+            print('Branch power from Node{} to Node{} is {}+({})j'.format(
                 source, end,
                 round(self.branch_power[source - 1][end - 1].real, 4),
                 round(self.branch_power[source - 1][end - 1].imag, 4)))
-            print('Branch power from Node{} to Node{} is {}+{}j'.format(
+            print('Branch power from Node{} to Node{} is {}+({})j'.format(
                 end, source,
                 round(self.branch_power[end - 1][source - 1].real, 4),
                 round(self.branch_power[end - 1][source - 1].imag, 4)))
