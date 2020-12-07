@@ -4,6 +4,7 @@ class ListNode:
         self.val = x
         self.next = None
 
+# 自己写的
 def addTwoNumber(l1,l2):
     l1_pointer,l2_pointer = l1,l2
     res_llist= ListNode(0)# 要返回的链表

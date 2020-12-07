@@ -1,7 +1,7 @@
 
 
 # 先排序再遍历  O(n)=nlogn+n
-def twoSum(nums,target):
+def v_1(nums,target):
     # nums: list[int]
     # target: int 
     # return type: List[int]
@@ -21,7 +21,7 @@ def twoSum(nums,target):
     return [sort_ids[idx_1],sort_ids[idx_2]]
 
 # 暴力 直接两个循环
-def twoSum_v2(nums,target):
+def v_2(nums,target):
 
     for i in range(len(nums)-1):
         for j in range(i+1,len(nums)):
